@@ -143,6 +143,7 @@ void walk_assist_state (void);
 void street_mode (void);
 void time_measurement (void);
 void energy_data (void);
+void update_assist_symbol (void);
 
 
 // menu functions
@@ -300,6 +301,7 @@ void lcd_execute_main_screen (void)
   time_measurement ();
   energy_data ();
   assist_level_state ();
+  update_assist_symbol ();
   
   // enter configuration menu if...
   if (UP_DOWN_LONG_CLICK)
@@ -1783,6 +1785,27 @@ void energy_data (void)
   }
 }
 
+void update_assist_symbol (void)
+{
+  static uint8_t ui8_street_mode_assist_symbol_state;
+  static uint8_t ui8_street_mode_assist_symbol_state_counter;
+
+  if (configuration_variables.ui8_street_mode_function_enabled && motor_controller_data.ui8_street_mode_enabled)
+  {
+      if (++ui8_street_mode_assist_symbol_state_counter > 45)
+      {
+        ui8_street_mode_assist_symbol_state_counter = 0;
+        
+        ui8_street_mode_assist_symbol_state = !ui8_street_mode_assist_symbol_state;
+      }
+
+      lcd_enable_assist_symbol (ui8_street_mode_assist_symbol_state);
+  }
+  else
+  {
+    lcd_enable_assist_symbol (1);
+  }
+}
 
 void battery_soc (void)
 {
@@ -1926,12 +1949,6 @@ void assist_level_state (void)
 
   // display assist level
   lcd_print (configuration_variables.ui8_assist_level, ASSIST_LEVEL_FIELD, 1);
-
-  // if street mode is disabled display "assist" symbol
-  if (!motor_controller_data.ui8_street_mode_enabled)
-  {
-    lcd_enable_assist_symbol (1);
-  }
 }
 
 
@@ -2022,8 +2039,6 @@ void walk_assist_state (void)
 
 void street_mode (void)
 {
-  static uint8_t ui8_street_mode_assist_symbol_state;
-  static uint8_t ui8_street_mode_assist_symbol_state_counter;
   static uint8_t ui8_executed_on_startup;
   
   if (configuration_variables.ui8_street_mode_function_enabled) 
@@ -2038,18 +2053,6 @@ void street_mode (void)
     if (ONOFF_DOWN_LONG_CLICK)
     {
       motor_controller_data.ui8_street_mode_enabled = !motor_controller_data.ui8_street_mode_enabled;
-    }
-    
-    if (motor_controller_data.ui8_street_mode_enabled)
-    {
-      if (++ui8_street_mode_assist_symbol_state_counter > 45)
-      {
-        ui8_street_mode_assist_symbol_state_counter = 0;
-        
-        ui8_street_mode_assist_symbol_state = !ui8_street_mode_assist_symbol_state;
-      }
-
-      lcd_enable_assist_symbol (ui8_street_mode_assist_symbol_state);
     }
   }
 }
