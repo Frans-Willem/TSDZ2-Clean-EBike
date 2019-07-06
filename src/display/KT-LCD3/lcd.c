@@ -2032,11 +2032,7 @@ void street_mode (void)
     if (!ui8_executed_on_startup)
     {
       ui8_executed_on_startup = 1;
-      
-      if (configuration_variables.ui8_street_mode_enabled_on_startup) 
-      {
-        motor_controller_data.ui8_street_mode_enabled = 1;
-      }
+      motor_controller_data.ui8_street_mode_enabled = configuration_variables.ui8_street_mode_enabled_on_startup;
     }
     
     if (ONOFF_DOWN_LONG_CLICK)
