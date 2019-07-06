@@ -1790,8 +1790,10 @@ void update_assist_symbol (void)
   static uint8_t ui8_street_mode_assist_symbol_state;
   static uint8_t ui8_street_mode_assist_symbol_state_counter;
 
-  if (configuration_variables.ui8_street_mode_function_enabled && motor_controller_data.ui8_street_mode_enabled)
+  if (configuration_variables.ui8_street_mode_function_enabled && !motor_controller_data.ui8_street_mode_enabled)
   {
+      // If street mode is enabled, but not activated,
+      // we inform the user by blinking the assist symbol.
       if (++ui8_street_mode_assist_symbol_state_counter > 45)
       {
         ui8_street_mode_assist_symbol_state_counter = 0;
@@ -1803,7 +1805,8 @@ void update_assist_symbol (void)
   }
   else
   {
-    lcd_enable_assist_symbol (1);
+    // In all other cases, turn the assist symbol on if our assist level > 0
+    lcd_enable_assist_symbol (configuration_variables.ui8_assist_level > 0);
   }
 }
 
