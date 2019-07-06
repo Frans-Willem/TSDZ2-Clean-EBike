@@ -3328,9 +3328,9 @@ void lcd_enable_colon_symbol (uint8_t ui8_state)
 }
 
 
+static uint32_t ui32_battery_voltage_accumulated_x10000 = 0; // <- This static should ideally be in the function below, but SDCC will crash with a buffer overflow if we do.
 void low_pass_filter_battery_voltage_current_power (void)
 {
-  static uint32_t ui32_battery_voltage_accumulated_x10000;
   static uint16_t ui16_battery_current_accumulated_x5;
   
   // low pass filter battery voltage
@@ -3368,10 +3368,11 @@ void low_pass_filter_battery_voltage_current_power (void)
 }
 
 
+// These statics should ideally be in the function below, but SDCC will crash with a buffer overflow if we do.
+static uint32_t ui32_pedal_power_accumulated = 0;
+static uint32_t ui32_pedal_torque_accumulated = 0;
 void low_pass_filter_pedal_torque_and_power (void)
 {
-  static uint32_t ui32_pedal_torque_accumulated;
-  static uint32_t ui32_pedal_power_accumulated;
   static uint8_t ui8_update_counter;
 
   if (++ui8_update_counter > 10) // update every 100 ms -> 10. This helps to filter the fast changing values
