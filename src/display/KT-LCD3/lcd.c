@@ -224,10 +224,7 @@ void TIM3_UPD_OVF_BRK_IRQHandler(void) __interrupt(TIM3_UPD_OVF_BRK_IRQHANDLER)
     ui8_100ms_timmer_counter = 0;
     
     // measure consumed watt-hours
-    if (ui16_battery_power_filtered_x50 > 0)
-    {
-      ui32_wh_sum_x5 += ui16_battery_power_filtered_x50 / 10;
-    }
+    ui32_wh_sum_x5 += ui16_battery_power_filtered_x50 / 10;
   }
   
   // increment second for time measurement 
