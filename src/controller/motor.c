@@ -973,16 +973,6 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   TIM1->SR1 = (uint8_t)(~(uint8_t)TIM1_IT_CC4);
 }
 
-void motor_disable_PWM (void)
-{
-  TIM1_CtrlPWMOutputs(DISABLE);
-}
-
-void motor_enable_PWM (void)
-{
-  TIM1_CtrlPWMOutputs(ENABLE);
-}
-
 void motor_controller_set_state (uint8_t ui8_state)
 {
   ui8_motor_controller_state |= ui8_state;
