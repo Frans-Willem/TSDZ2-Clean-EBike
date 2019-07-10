@@ -1,7 +1,7 @@
 language: minimal
 dist: xenial
 before_install:
-  - sudo apt-get install -y libboost-all-dev
+  - sudo apt-get install -y libboost-all-dev texinfo
 install:
   - ./travis/install-sdcc.sh
   - ./travis/install-stm8-binutils.sh
