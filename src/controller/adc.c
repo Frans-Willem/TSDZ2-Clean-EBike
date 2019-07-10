@@ -96,8 +96,8 @@ uint16_t ui16_adc_read_battery_current_10b (void)
   uint16_t temph;
   uint8_t templ;
 
-  templ = *(uint8_t*)(0x53EB);
-  temph = *(uint8_t*)(0x53EA);
+  templ = ADC1->DB5RL;
+  temph = ADC1->DB5RH;
 
   temph = ((uint16_t) temph) << 2 | ((uint16_t) templ);
   
@@ -119,8 +119,8 @@ uint16_t ui16_adc_read_torque_sensor_10b (void)
   uint16_t temph;
   uint8_t templ;
 
-  templ = *(uint8_t*)(0x53E9);
-  temph = *(uint8_t*)(0x53E8);
+  templ = ADC1->DB4RL;
+  temph = ADC1->DB4RH;
 
   return ((uint16_t) temph) << 2 | ((uint16_t) templ);
 }
@@ -130,8 +130,8 @@ uint16_t ui16_adc_read_throttle_10b (void)
   uint16_t temph;
   uint8_t templ;
 
-  templ = *(uint8_t*)(0x53EF);
-  temph = *(uint8_t*)(0x53EE);
+  templ = ADC1->DB7RL;
+  temph = ADC1->DB7RH;
 
   return ((uint16_t) temph) << 2 | ((uint16_t) templ);
 }
@@ -141,8 +141,8 @@ uint16_t ui16_adc_read_battery_voltage_10b (void)
   uint16_t temph;
   uint8_t templ;
 
-  templ = *(uint8_t*)(0x53ED);
-  temph = *(uint8_t*)(0x53EC);
+  templ = ADC1->DB6RL;
+  temph = ADC1->DB6RH;
 
   return ((uint16_t) temph) << 2 | ((uint16_t) templ);
 }
