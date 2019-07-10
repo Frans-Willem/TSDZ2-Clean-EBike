@@ -1,2 +1,10 @@
-language: c
-
+language: minimal
+dist: xenial
+before_install:
+  - sudo apt-get install -y libboost-all-dev
+install:
+  - ./travis/install-sdcc.sh
+  - ./travis/install-stm8-binutils.sh
+script:
+  - pushd src/controller && make -f Makefile_linux && popd
+  - pushd src/display/KT-LCD3 && make -f Makefile_linux && popd
