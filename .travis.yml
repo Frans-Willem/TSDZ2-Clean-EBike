@@ -1,10 +1,21 @@
 language: minimal
 dist: xenial
 before_install:
-  - sudo apt-get install -y libboost-all-dev texinfo
+  - sudo apt-get install -y libboost-all-dev texinfo dos2unix
 install:
   - ./travis/install-sdcc.sh
   - ./travis/install-stm8-binutils.sh
 script:
   - pushd src/controller && make -f Makefile_linux && popd
   - pushd src/display/KT-LCD3 && make -f Makefile_linux && popd
+before_deploy:
+  - sh ./travis/create-artifact-package.sh
+  - sh ./travis/create-bintray-descriptor.sh > descriptor.json
+deploy:
+  provider: bintray
+  skip_cleanup: true
+  file: descriptor.json
+  user: frans-willem
+  key: "$BINTRAY_API_KEY"
+  on:
+    all_branches: true
