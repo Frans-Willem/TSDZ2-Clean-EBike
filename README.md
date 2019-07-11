@@ -17,7 +17,21 @@ People will be using these bikes in traffic, let's respect that.
 Prefer usability over a mess of features and settings. If a feature or setting would only be used by 5% of users, prefer a seperate fork, or put stuff behind ifdefs.
 This firmware should be suitable for most city e-bikes, speed pedelecs/e-bikes, and in some cases for electric mountainbikes.
 
-## Compiling
+## Releases and development builds
+This fork does not yet have any official releases. However, an automated build system has been set up with Travis-CI.org, uploading it's results to bintray.
+
+Please note that the automated builds may not be stable, and flashing them to your bike is at your own risk.
+Nevertheless, we will take great care to ensure that at least the master branch should be relatively safe to try out.
+
+The main (master) branch's build result and download link are below:\
+[![Build Status](https://travis-ci.org/Frans-Willem/TSDZ2-Clean-EBike.svg?branch=master)](https://travis-ci.org/Frans-Willem/TSDZ2-Clean-EBike)
+[ ![Download](https://api.bintray.com/packages/frans-willem/TSDZ2-Clean-EBike/master/images/download.svg) ](https://bintray.com/frans-willem/TSDZ2-Clean-EBike/master/_latestVersion#files)
+
+
+Other build results and logs can be found at [Travis-CI.org](https://travis-ci.org/Frans-Willem/TSDZ2-Clean-EBike).
+Built binaries for older versions or other branches can be found at [Bintray.com](https://bintray.com/frans-willem/TSDZ2-Clean-EBike/).
+
+## Compilation
 The project is compiled using SDCC 3.9.0. While it may work with older or newer versions, SDCC is prone to breaking
 
 
