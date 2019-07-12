@@ -40,7 +40,7 @@ volatile struct_configuration_variables m_configuration_variables;
 // variables for various system functions
 volatile uint8_t ui8_system_state = NO_ERROR;
 volatile uint16_t ui16_pas_pwm_cycles_ticks = (uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS;
-volatile uint8_t ui8_g_pedaling_direction = 0;
+volatile enum pedaling_direction_t enm_g_pedaling_direction = 0;
 uint8_t   ui8_pas_cadence_rpm = 0;
 uint16_t  ui16_pedal_torque_x10;
 uint16_t  ui16_pedal_power_x10;
@@ -1034,7 +1034,7 @@ static void read_pas_cadence(void)
 {
   // cadence in RPM =  60 / (ui16_pas_timer2_ticks * PAS_NUMBER_MAGNETS * 0.000064)
   if((ui16_pas_pwm_cycles_ticks >= ((uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS)) ||
-      (ui8_g_pedaling_direction != 1)) // if not rotating pedals forward
+      (enm_g_pedaling_direction != pedaling_direction_forward)) // if not rotating pedals forward
   { 
     ui8_pas_cadence_rpm = 0; 
   }

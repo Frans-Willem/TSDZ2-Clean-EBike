@@ -58,7 +58,12 @@ extern volatile uint8_t ui8_ebike_app_state;
 extern volatile uint8_t ui8_adc_target_battery_max_current;
 
 extern volatile uint16_t ui16_pas_pwm_cycles_ticks;
-extern volatile uint8_t ui8_g_pedaling_direction;
+enum pedaling_direction_t {
+    pedaling_direction_unknown,
+    pedaling_direction_forward,
+    pedaling_direction_backward
+};
+extern volatile enum pedaling_direction_t enm_g_pedaling_direction;
 extern uint8_t ui8_pas_cadence_rpm;
 
 extern volatile uint16_t ui16_wheel_speed_sensor_pwm_cycles_ticks;
