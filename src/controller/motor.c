@@ -449,10 +449,6 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
 {
   static uint8_t ui8_temp;
   
-  struct_configuration_variables *p_configuration_variables;
-  p_configuration_variables = get_configuration_variables ();
-
-
   /****************************************************************************/
   
   
