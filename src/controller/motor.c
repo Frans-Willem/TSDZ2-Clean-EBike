@@ -462,8 +462,8 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   // start ADC1 conversion
   ADC1->CR1 |= ADC1_CR1_ADON;
   while (!(ADC1->CSR & ADC1_FLAG_EOC)) ;
-  ui16_adc_battery_current_10b = ui16_adc_read_battery_current_10b ();
-  ui8_g_adc_battery_current = ui16_adc_battery_current_10b >> 2;
+  ui8_g_adc_battery_current = UI8_ADC_BATTERY_CURRENT;
+  ui16_adc_battery_current_10b = UI16_ADC_BATTERY_CURRENT;
 
   // calculate motor phase current ADC value
   if (ui8_g_duty_cycle > 0)
