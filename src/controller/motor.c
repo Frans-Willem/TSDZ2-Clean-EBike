@@ -357,7 +357,6 @@ uint16_t ui16_PWM_cycles_counter_total = 0xffff;
 
 uint16_t ui16_max_motor_speed_erps = (uint16_t) MOTOR_OVER_SPEED_ERPS;
 static volatile uint16_t ui16_motor_speed_erps = 0;
-uint8_t ui8_svm_table_index = 0;
 uint8_t ui8_motor_rotor_absolute_angle;
 uint8_t ui8_motor_rotor_angle;
 
@@ -368,7 +367,6 @@ uint16_t ui16_foc_angle_accumulated = 0;
 uint8_t ui8_motor_commutation_type = BLOCK_COMMUTATION;
 volatile uint8_t ui8_motor_controller_state = MOTOR_CONTROLLER_STATE_OK;
 
-uint8_t ui8_hall_sensors_state = 0;
 uint8_t ui8_hall_sensors_state_last = 0;
 
 uint8_t ui8_half_erps_flag = 0;
@@ -380,9 +378,6 @@ uint16_t ui16_duty_cycle_ramp_down_inverse_step;
 uint16_t ui16_counter_duty_cycle_ramp_up = 0;
 uint16_t ui16_counter_duty_cycle_ramp_down = 0;
 
-uint8_t ui8_phase_a_voltage;
-uint8_t ui8_phase_b_voltage;
-uint8_t ui8_phase_c_voltage;
 uint16_t ui16_value;
 
 uint16_t ui16_counter_adc_battery_current_ramp_up = 0;
@@ -406,7 +401,6 @@ uint8_t ui8_current_controller_counter = 0;
 volatile uint8_t ui8_adc_target_motor_phase_max_current;
 volatile uint8_t ui8_g_adc_motor_phase_current_offset;
 
-uint8_t ui8_pas_state;
 uint8_t ui8_pas_state_old;
 uint8_t ui8_pas_after_first_pulse = 0;
 uint16_t ui16_pas_counter = (uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS;
@@ -418,7 +412,6 @@ uint16_t ui16_torque_sensor_throttle_value;
 
 
 // wheel speed
-uint8_t ui8_wheel_speed_sensor_state = 1;
 uint8_t ui8_wheel_speed_sensor_state_old = 1;
 uint16_t ui16_wheel_speed_sensor_counter = 0;
 uint8_t ui8_wheel_speed_sensor_change_counter = 0;
@@ -447,7 +440,6 @@ void motor_controller (void)
 // runs every 64us (PWM frequency)
 void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
 {
-  static uint8_t ui8_temp;
   
   /****************************************************************************/
   
@@ -494,7 +486,7 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
 
   // read hall sensors signal pins and mask other pins
   // hall sensors sequence with motor forward rotation: 4, 6, 2, 3, 1, 5
-  ui8_hall_sensors_state = ((HALL_SENSOR_A__PORT->IDR & HALL_SENSOR_A__PIN) >> 5) |
+  uint8_t ui8_hall_sensors_state = ((HALL_SENSOR_A__PORT->IDR & HALL_SENSOR_A__PIN) >> 5) |
   ((HALL_SENSOR_B__PORT->IDR & HALL_SENSOR_B__PIN) >> 1) |
   ((HALL_SENSOR_C__PORT->IDR & HALL_SENSOR_C__PIN) >> 3);
   
@@ -606,6 +598,7 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   
   
   // - calc interpolation angle and sinewave table index
+  uint8_t ui8_svm_table_index;
 #define DO_INTERPOLATION 1 // may be useful to disable interpolation when debugging
 #if DO_INTERPOLATION == 1
   // calculate the interpolation angle (and it doesn't work when motor starts and at very low speeds)
@@ -703,6 +696,10 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   
   // calculate final PWM duty_cycle values to be applied to TIMER1
 
+  uint8_t ui8_temp;
+  uint8_t ui8_phase_a_voltage;
+  uint8_t ui8_phase_b_voltage;
+  uint8_t ui8_phase_c_voltage;
   // scale and apply PWM duty_cycle for the 3 phases
   // phase A is advanced 240 degrees over phase B
   ui8_temp = ui8_svm_table [(uint8_t) (ui8_svm_table_index + 171 /* 240º */)];
@@ -795,14 +792,7 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   ui16_pas_counter++;
 
   // detect PAS signal changes
-  if((PAS1__PORT->IDR & PAS1__PIN) == 0)
-  {
-    ui8_pas_state = 0;
-  }
-  else
-  {
-    ui8_pas_state = 1;
-  }
+  uint8_t ui8_pas_state = (PAS1__PORT->IDR & PAS1__PIN);
 
   // PAS signal did change
   if(ui8_pas_state != ui8_pas_state_old)
@@ -810,7 +800,7 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
     ui8_pas_state_old = ui8_pas_state;
 
     // consider only when PAS signal transition from 0 to 1
-    if(ui8_pas_state == 1)
+    if(ui8_pas_state != 0)
     {
       // keep track of first pulse
       if(!ui8_pas_after_first_pulse)
@@ -915,20 +905,12 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   else
   {
     // detect wheel speed sensor signal changes
-    if (WHEEL_SPEED_SENSOR__PORT->IDR & WHEEL_SPEED_SENSOR__PIN)
-    {
-      ui8_wheel_speed_sensor_state = 1;
-    }
-    else
-    {
-      ui8_wheel_speed_sensor_state = 0;
-    }
-
+    uint8_t ui8_wheel_speed_sensor_state = (WHEEL_SPEED_SENSOR__PORT->IDR & WHEEL_SPEED_SENSOR__PIN);
     if (ui8_wheel_speed_sensor_state != ui8_wheel_speed_sensor_state_old) // wheel speed sensor signal did change
     {
       ui8_wheel_speed_sensor_state_old = ui8_wheel_speed_sensor_state;
 
-      if (ui8_wheel_speed_sensor_state == 1) // consider only when wheel speed sensor signal transition from 0 to 1
+      if (ui8_wheel_speed_sensor_state != 0) // consider only when wheel speed sensor signal transition from 0 to 1
       {
         // Here we are trying to count 2 consecutive wheel speed signal changes, other way we will have erroneus values on the first
         // signal change. The correct time needs to be measured between 2 consecutive signal changes.
