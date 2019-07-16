@@ -1,7 +1,7 @@
 language: minimal
 dist: xenial
 before_install:
-  - sudo apt-get install -y libboost-all-dev texinfo dos2unix
+  - sudo apt-get install -y libboost-all-dev texinfo dos2unix python3 python3-numpy
 install:
   - ./travis/install-sdcc.sh
   - ./travis/install-stm8-binutils.sh
