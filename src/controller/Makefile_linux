@@ -55,7 +55,8 @@ EXTRASRCS = \
 	lights.c \
 
 HEADERS = watchdog.h torque_sensor.h interrupts.h main.h uart.h pwm.h motor.h wheel_speed_sensor.h brake.h pas.h adc.h timers.h \
-ebike_app.h utils.h pins.h config.h eeprom.h lights.h
+ebike_app.h utils.h pins.h config.h eeprom.h lights.h \
+svpwm_table.h
 
 # The list of .rel files can be derived from the list of their source files
 RELS = $(EXTRASRCS:.c=.rel)
@@ -80,6 +81,9 @@ $(PNAME): $(MAINSRC) $(RELS)
 # GNU would have you use a pattern rule for this, but that's GNU-specific
 %.rel: %.c $(HEADERS)
 	$(CC) -c $(INCLUDES) $(CFLAGS) $(ELF_FLAGS) $(LIBS) -o$< $<
+
+svpwm_table.h: generate_svpwm_table.py
+	python3 generate_svpwm_table.py > svpwm_table.h
 
 # Suffixes appearing in suffix rules we care about.
 # Necessary because .rel is not one of the standard suffixes.
@@ -117,4 +121,5 @@ clean:
 	@rm -rf main.bin
 	@rm -rf *.ihx
 	@rm -rf *.hex
+	@rm -rf svpwm_table.h
 	@echo "Done."
