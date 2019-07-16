@@ -70,14 +70,13 @@ def calculate_pwm(abc):
 
 # For an index, calculate a valid phase basis (see is_valid_basis)
 def calculate_basis(index):
-    # NOTE:
-    # The +1 in (index+1) should be removed,
-    # However, for now it's added such that the generated table is
-    # as close as possible to the original (undocumented) table.
-    # This might also explain why further on in the motor.c code,
-    # a shift of 90 degrees is done with +63, instead of the expected +64
-    # ((90/360)*256 == 64)
-    degrees = ((index+1) / 256)*360
+    # Convert index 0-256 to degrees 0-360
+    # Using 0-256 'degrees' means we can use standard uint8_t overflow,
+    # instead of having to do an explicit modulo operation.
+    degrees = (index / 256) * 360
+    # Phase voltage should be 90 degrees ahead of rotor position,
+    # Instead of doing this runtime, let's do this compile time:
+    degrees = (degrees - 90) % 360
     # Calculate a unit vector in the direction of degrees, this is the resulting vector that we'd like
     Vref = unitvector_from_degrees(degrees)
 

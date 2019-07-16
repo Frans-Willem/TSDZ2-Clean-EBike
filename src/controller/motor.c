@@ -351,10 +351,6 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   }
 #endif
 
-  // we need to put phase voltage 90 degrees ahead of rotor position, to get current 90 degrees ahead and have max torque per amp
-  ui8_svm_table_index -= 63;
-  
-  
   /****************************************************************************/
 
 
