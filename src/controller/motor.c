@@ -427,55 +427,40 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   
   // calculate final PWM duty_cycle values to be applied to TIMER1
 
-  uint8_t ui8_temp;
   uint8_t ui8_phase_a_voltage;
   uint8_t ui8_phase_b_voltage;
   uint8_t ui8_phase_c_voltage;
   // scale and apply PWM duty_cycle for the 3 phases
-  // phase A is advanced 240 degrees over phase B
-  ui8_temp = ui8_svm_table [(uint8_t) (ui8_svm_table_index + 171 /* 240º */)];
-  if (ui8_temp > MIDDLE_PWM_DUTY_CYCLE_MAX)
-  {
-    ui16_value = ((uint16_t) (ui8_temp - MIDDLE_PWM_DUTY_CYCLE_MAX)) * ui8_g_duty_cycle;
-    ui8_temp = (uint8_t) (ui16_value >> 8);
-    ui8_phase_a_voltage = MIDDLE_PWM_DUTY_CYCLE_MAX + ui8_temp;
-  }
-  else
-  {
-    ui16_value = ((uint16_t) (MIDDLE_PWM_DUTY_CYCLE_MAX - ui8_temp)) * ui8_g_duty_cycle;
-    ui8_temp = (uint8_t) (ui16_value >> 8);
-    ui8_phase_a_voltage = MIDDLE_PWM_DUTY_CYCLE_MAX - ui8_temp;
-  }
-
   // phase B as reference phase
-  ui8_temp = ui8_svm_table [ui8_svm_table_index];
-  if (ui8_temp > MIDDLE_PWM_DUTY_CYCLE_MAX)
-  {
-    ui16_value = ((uint16_t) (ui8_temp - MIDDLE_PWM_DUTY_CYCLE_MAX)) * ui8_g_duty_cycle;
-    ui8_temp = (uint8_t) (ui16_value >> 8);
-    ui8_phase_b_voltage = MIDDLE_PWM_DUTY_CYCLE_MAX + ui8_temp;
-  }
-  else
-  {
-    ui16_value = ((uint16_t) (MIDDLE_PWM_DUTY_CYCLE_MAX - ui8_temp)) * ui8_g_duty_cycle;
-    ui8_temp = (uint8_t) (ui16_value >> 8);
-    ui8_phase_b_voltage = MIDDLE_PWM_DUTY_CYCLE_MAX - ui8_temp;
+  ui8_phase_b_voltage = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index % 128])/512);
+  // Checking to see if svm_table_index >= 128 (180 degrees),
+  // however SDCC is not yet smart enough to compile that to a bit-compare.
+  if (ui8_svm_table_index & 0x80) {
+    ui8_phase_b_voltage = 127 - ui8_phase_b_voltage;
+  } else {
+    ui8_phase_b_voltage += 127;
   }
 
   // phase C is advanced 120 degrees over phase B
-  ui8_temp = ui8_svm_table [(uint8_t) (ui8_svm_table_index + 85 /* 120º */)];
-  if (ui8_temp > MIDDLE_PWM_DUTY_CYCLE_MAX)
-  {
-    ui16_value = ((uint16_t) (ui8_temp - MIDDLE_PWM_DUTY_CYCLE_MAX)) * ui8_g_duty_cycle;
-    ui8_temp = (uint8_t) (ui16_value >> 8);
-    ui8_phase_c_voltage = MIDDLE_PWM_DUTY_CYCLE_MAX + ui8_temp;
+  ui8_svm_table_index += 85; // 120º / 360 * 256 = 85
+  ui8_phase_c_voltage = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index % 128])/512);
+  if (ui8_svm_table_index & 0x80) {
+    ui8_phase_c_voltage = 127 - ui8_phase_c_voltage;
+  } else {
+    ui8_phase_c_voltage += 127;
   }
-  else
-  {
-    ui16_value = ((uint16_t) (MIDDLE_PWM_DUTY_CYCLE_MAX - ui8_temp)) * ui8_g_duty_cycle;
-    ui8_temp = (uint8_t) (ui16_value >> 8);
-    ui8_phase_c_voltage = MIDDLE_PWM_DUTY_CYCLE_MAX - ui8_temp;
+
+  // phase A is advanced 240 degrees over phase B
+  ui8_svm_table_index += 86; // 240º / 360 * 256 = 171 - 85 already added = 86
+  ui8_phase_a_voltage = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index % 128])/512);
+  // Checking to see if svm_table_index >= 128 (180 degrees),
+  // however SDCC is not yet smart enough to compile that to a bit-compare.
+  if (ui8_svm_table_index & 0x80) {
+    ui8_phase_a_voltage = 127 - ui8_phase_a_voltage;
+  } else {
+    ui8_phase_a_voltage += 127;
   }
+
 
   // set final duty_cycle value
   // phase B

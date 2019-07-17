@@ -1,8 +1,8 @@
 import math
 import numpy as np
 
-MINIMUM_PWM_PERIOD = 0
-MAXIMUM_PWM_PERIOD = 255
+MINIMUM_PWM_PERIOD = -127*2
+MAXIMUM_PWM_PERIOD = 127*2
 
 # From degrees, get a unit vector in that direction.
 def unitvector_from_degrees(deg):
@@ -101,7 +101,7 @@ def map_pwm(periods, min_period, max_period, min_new_period, max_new_period):
 	return periods
 
 
-basis = map(calculate_basis, range(0, 256))
+basis = map(calculate_basis, range(0, 128))
 uncapped_pwm = list(map(calculate_pwm, basis))
 maximum_uncapped_pwm_period = max(map(max, uncapped_pwm))
 results = map(lambda pwms: map_pwm(pwms, 0, maximum_uncapped_pwm_period, MINIMUM_PWM_PERIOD, MAXIMUM_PWM_PERIOD), uncapped_pwm)
