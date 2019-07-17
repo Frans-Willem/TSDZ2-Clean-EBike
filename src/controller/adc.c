@@ -64,7 +64,7 @@ void adc_init (void)
     while(!ADC1_GetFlagStatus(ADC1_FLAG_EOC)) ; // wait for end of conversion
     ui16_adc_battery_current_offset += UI8_ADC_BATTERY_CURRENT;
   }
-  ui16_adc_battery_current_offset >>= 4;
+  ui16_adc_battery_current_offset /= 16;
   ui8_adc_battery_current_offset = ui16_adc_battery_current_offset >> 2;
   ui8_g_adc_motor_phase_current_offset = ui8_adc_battery_current_offset;
 
@@ -78,7 +78,7 @@ void adc_init (void)
     while(!ADC1_GetFlagStatus(ADC1_FLAG_EOC)) ; // wait for end of conversion
     ui16_adc_torque_sensor_offset += UI8_ADC_TORQUE_SENSOR;
   }
-  ui16_adc_torque_sensor_offset >>= 4;
+  ui16_adc_torque_sensor_offset /= 16;
 
   ui8_g_adc_torque_sensor_min_value = ((uint8_t) ui16_adc_torque_sensor_offset) + ADC_TORQUE_SENSOR_THRESHOLD;
   ui8_g_adc_torque_sensor_max_value = ui8_g_adc_torque_sensor_min_value + 32;
@@ -111,7 +111,7 @@ uint16_t ui16_adc_read_battery_current_10b (void)
   if (temph > 15)
     return temph;
   temph -= 5;
-  return temph+(temph>>1);
+  return temph+(temph/2);
 }
 
 uint16_t ui16_adc_read_torque_sensor_10b (void)

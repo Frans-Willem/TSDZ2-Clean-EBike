@@ -1050,7 +1050,7 @@ void calc_foc_angle (void)
   // calc E phase voltage
   ui16_temp = ui16_adc_battery_voltage_filtered_10b * ADC10BITS_BATTERY_VOLTAGE_PER_ADC_STEP_X512;
   ui16_temp = (ui16_temp >> 8) * ui8_g_duty_cycle;
-  ui16_e_phase_voltage = ui16_temp >> 9;
+  ui16_e_phase_voltage = ui16_temp / 512;
 
   // calc I phase current
   if (ui8_g_duty_cycle > 10)
@@ -1123,9 +1123,9 @@ void calc_foc_angle (void)
   uint8_t ui8_g_foc_angle_unfiltered = asin_table (ui16_iwl_128 / ui16_e_phase_voltage);
 
   // low pass filter FOC angle
-  ui16_foc_angle_accumulated -= ui16_foc_angle_accumulated >> 4;
+  ui16_foc_angle_accumulated -= ui16_foc_angle_accumulated / 16;
   ui16_foc_angle_accumulated += ui8_g_foc_angle_unfiltered;
-  ui8_g_foc_angle = ui16_foc_angle_accumulated >> 4;
+  ui8_g_foc_angle = ui16_foc_angle_accumulated / 16;
 }
 
 // calc asin also converts the final result to degrees
