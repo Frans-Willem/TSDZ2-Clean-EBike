@@ -431,35 +431,24 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   uint8_t ui8_phase_b_voltage;
   uint8_t ui8_phase_c_voltage;
   // scale and apply PWM duty_cycle for the 3 phases
+  //
+  // Checking to see if svm_table_index >= 128 (180 degrees) by & 0x80,
+  // as SDCC is not yet smart enough to do that automatically.
+#define CALC_PHASE(PHASE_OUTPUT) do { \
+  uint8_t ui8_temp = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index])/512); \
+  PHASE_OUTPUT = (ui8_svm_table_index & 0x80) ? (UI8_SVM_TABLE_MIDDLE - ui8_temp) : (ui8_temp + UI8_SVM_TABLE_MIDDLE); \
+} while (0)
+
   // phase B as reference phase
-  ui8_phase_b_voltage = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index % 128])/512);
-  // Checking to see if svm_table_index >= 128 (180 degrees),
-  // however SDCC is not yet smart enough to compile that to a bit-compare.
-  if (ui8_svm_table_index & 0x80) {
-    ui8_phase_b_voltage = 127 - ui8_phase_b_voltage;
-  } else {
-    ui8_phase_b_voltage += 127;
-  }
+  CALC_PHASE(ui8_phase_b_voltage);
 
   // phase C is advanced 120 degrees over phase B
   ui8_svm_table_index += 85; // 120º / 360 * 256 = 85
-  ui8_phase_c_voltage = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index % 128])/512);
-  if (ui8_svm_table_index & 0x80) {
-    ui8_phase_c_voltage = 127 - ui8_phase_c_voltage;
-  } else {
-    ui8_phase_c_voltage += 127;
-  }
+  CALC_PHASE(ui8_phase_c_voltage);
 
   // phase A is advanced 240 degrees over phase B
   ui8_svm_table_index += 86; // 240º / 360 * 256 = 171 - 85 already added = 86
-  ui8_phase_a_voltage = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index % 128])/512);
-  // Checking to see if svm_table_index >= 128 (180 degrees),
-  // however SDCC is not yet smart enough to compile that to a bit-compare.
-  if (ui8_svm_table_index & 0x80) {
-    ui8_phase_a_voltage = 127 - ui8_phase_a_voltage;
-  } else {
-    ui8_phase_a_voltage += 127;
-  }
+  CALC_PHASE(ui8_phase_a_voltage);
 
 
   // set final duty_cycle value
