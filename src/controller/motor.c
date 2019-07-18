@@ -596,7 +596,7 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   
   
   // - calc interpolation angle and sinewave table index
-  uint8_t ui8_svm_table_index;
+  uint8_t ui8_svm_table_index = ui8_motor_rotor_absolute_angle + ui8_g_foc_angle;
 #define DO_INTERPOLATION 1 // may be useful to disable interpolation when debugging
 #if DO_INTERPOLATION == 1
   // calculate the interpolation angle (and it doesn't work when motor starts and at very low speeds)
@@ -605,14 +605,9 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
     // division by 0: ui16_PWM_cycles_counter_total should never be 0
     // TODO: verifiy if (ui16_PWM_cycles_counter_6 << 8) do not overflow
     uint8_t ui8_interpolation_angle = (ui16_PWM_cycles_counter_6 << 8) / ui16_PWM_cycles_counter_total; // this operations take 4.4us
-    uint8_t ui8_motor_rotor_angle = ui8_motor_rotor_absolute_angle + ui8_interpolation_angle;
-    ui8_svm_table_index = ui8_motor_rotor_angle + ui8_g_foc_angle;
+    ui8_svm_table_index += ui8_interpolation_angle;
   }
-  else
 #endif
-  {
-    ui8_svm_table_index = ui8_motor_rotor_absolute_angle + ui8_g_foc_angle;
-  }
 
   // we need to put phase voltage 90 degrees ahead of rotor position, to get current 90 degrees ahead and have max torque per amp
   ui8_svm_table_index -= 63;
