@@ -427,16 +427,31 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   
   // calculate final PWM duty_cycle values to be applied to TIMER1
 
-  uint8_t ui8_phase_a_voltage;
-  uint8_t ui8_phase_b_voltage;
-  uint8_t ui8_phase_c_voltage;
+  uint8_t ui8_phase_a_voltage_lsb;
+  uint8_t ui8_phase_b_voltage_lsb;
+  uint8_t ui8_phase_c_voltage_lsb;
+  uint8_t ui8_phase_a_voltage_msb;
+  uint8_t ui8_phase_b_voltage_msb;
+  uint8_t ui8_phase_c_voltage_msb;
   // scale and apply PWM duty_cycle for the 3 phases
   //
+  // The first half of the table is the positive offset from the middle (0x100),
+  // in that case just set MSB to 0x1, and the value from the table*duty cycle to LSB.
+  // The second half of the table is a negative offset from that same middle,
+  // and should be substracted from 0x100.
+  // To cheat, we leave it as 0x100 when this value * duty cycle is 0,
+  // otherwise we assume MSB is 0, and just invert the value from the table from LSB.
   // Checking to see if svm_table_index >= 128 (180 degrees) by & 0x80,
   // as SDCC is not yet smart enough to do that automatically.
 #define CALC_PHASE(PHASE_OUTPUT) do { \
-  uint8_t ui8_temp = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index])/512); \
-  PHASE_OUTPUT = (ui8_svm_table_index & 0x80) ? (UI8_SVM_TABLE_MIDDLE - ui8_temp) : (ui8_temp + UI8_SVM_TABLE_MIDDLE); \
+  uint8_t ui8_temp = ((uint16_t)(ui8_g_duty_cycle * ui8_svm_table[ui8_svm_table_index])/256); \
+  if (ui8_temp > 0 && (ui8_svm_table_index & 0x80)) { \
+    PHASE_OUTPUT ## _lsb = 0-ui8_temp; \
+    PHASE_OUTPUT ## _msb = 0; \
+  } else { \
+    PHASE_OUTPUT ## _lsb = ui8_temp; \
+    PHASE_OUTPUT ## _msb = 1; \
+  } \
 } while (0)
 
   // phase B as reference phase
@@ -453,14 +468,14 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
 
   // set final duty_cycle value
   // phase B
-  TIM1->CCR3H = (uint8_t) (ui8_phase_b_voltage >> 7);
-  TIM1->CCR3L = (uint8_t) (ui8_phase_b_voltage << 1);
+  TIM1->CCR3H = ui8_phase_b_voltage_msb;
+  TIM1->CCR3L = ui8_phase_b_voltage_lsb;
   // phase C
-  TIM1->CCR2H = (uint8_t) (ui8_phase_c_voltage >> 7);
-  TIM1->CCR2L = (uint8_t) (ui8_phase_c_voltage << 1);
+  TIM1->CCR2H = ui8_phase_c_voltage_msb;
+  TIM1->CCR2L = ui8_phase_c_voltage_lsb;
   // phase A
-  TIM1->CCR1H = (uint8_t) (ui8_phase_a_voltage >> 7);
-  TIM1->CCR1L = (uint8_t) (ui8_phase_a_voltage << 1);
+  TIM1->CCR1H = ui8_phase_a_voltage_msb;
+  TIM1->CCR1L = ui8_phase_a_voltage_lsb;
 
 
 
