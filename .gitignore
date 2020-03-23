@@ -12,6 +12,16 @@
 
 Debug
 
+*.swp
+
 **/Result.log
 
 **/*.launch
+
+.vscode/
+
+src/**/*.hex
+src/**/*.bin
+
+
+
