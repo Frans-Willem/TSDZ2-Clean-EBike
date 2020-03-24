@@ -122,6 +122,8 @@ void ebike_app_init (void)
   // init variables with the stored value on EEPROM
   eeprom_init_variables ();
   ebike_app_set_battery_max_current (ADC_BATTERY_CURRENT_MAX);
+  
+  initializeConfigurationVariables();
 }
 
 

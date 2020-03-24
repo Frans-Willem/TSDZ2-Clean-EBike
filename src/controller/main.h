@@ -119,7 +119,7 @@
 
 
 // EEPROM memory variables default values
-#define DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10                     40  // 4.0
+#define DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10                     10  // 1.0
 #define DEFAULT_VALUE_CONFIG_0                                    0
 #define DEFAULT_VALUE_BATTERY_MAX_CURRENT                         10  // 10 amps
 #define DEFAULT_VALUE_TARGET_BATTERY_MAX_POWER_X10                50  // 500 watts

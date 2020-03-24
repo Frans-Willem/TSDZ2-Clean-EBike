@@ -120,7 +120,56 @@ void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
   }
 }
 
+
 #if VLCD
+
+void initializeConfigurationVariables(void)
+{
+  m_configuration_variables.ui8_assist_level_factor_x10 = DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10;
+  m_configuration_variables.ui8_battery_max_current = DEFAULT_VALUE_BATTERY_MAX_CURRENT;
+  m_configuration_variables.ui8_motor_power_x10 = 0;
+  m_configuration_variables.ui16_battery_low_voltage_cut_off_x10 = 370; // 37V
+  m_configuration_variables.ui16_wheel_perimeter = 2050; // 26'' -> 2050mm
+  m_configuration_variables.ui8_lights = 0;
+  m_configuration_variables.ui8_walk_assist = 0;
+  m_configuration_variables.ui8_wheel_max_speed = DEFAULT_VALUE_WHEEL_MAX_SPEED;
+  m_configuration_variables.ui8_motor_type = 0; // how to indicate 48V -> 0 -> motor.c
+  m_configuration_variables.ui8_motor_assistance_startup_without_pedal_rotation = 0;
+  m_configuration_variables.ui8_target_battery_max_power_div25 = 22; // 22x25 = 550, same as motor_power_x10?
+  m_configuration_variables.configuration_variables = 0;
+  m_configuration_variables.ui8_startup_motor_power_boost_feature_enabled = 0;
+  m_configuration_variables.ui8_startup_motor_power_boost_assist_level = 0;
+  m_configuration_variables.ui8_startup_motor_power_boost_state = 0;
+  m_configuration_variables.ui8_startup_motor_power_boost_limit_to_max_power = 0;
+  m_configuration_variables.ui8_startup_motor_power_boost_time = 0;
+  m_configuration_variables.ui8_startup_motor_power_boost_fade_time = 0;
+  m_configuration_variables.ui8_temperature_limit_feature_enabled = 0;
+  m_configuration_variables.ui8_motor_temperature_min_value_to_limit = 0;
+  m_configuration_variables.ui8_motor_temperature_max_value_to_limit = 0;
+  m_configuration_variables.ui8_temperature_current_limiting_value = 0;
+  m_configuration_variables.ui16_motor_temperature_x2 = 0;
+  m_configuration_variables.ui8_motor_temperature = 0;
+  m_configuration_variables.ui8_ramp_up_amps_per_second_x10 = DEFAULT_VALUE_RAMP_UP_AMPS_PER_SECOND_X10;
+
+  /* from original uart_receive_package */
+  
+  // battery voltage cutoff
+  // calc the value in ADC steps and set it up
+  uint32_t ui32_temp;
+  ui32_temp = ((uint32_t)m_configuration_variables.ui16_battery_low_voltage_cut_off_x10 << 8) / ((uint32_t)ADC8BITS_BATTERY_VOLTAGE_PER_ADC_STEP_INVERSE_X256);
+  ui32_temp /= 10;
+  motor_set_adc_battery_voltage_cut_off((uint8_t)ui32_temp);
+
+  // max current
+  // set max current from battery
+  ebike_app_set_battery_max_current(m_configuration_variables.ui8_battery_max_current);
+
+  // current ramp
+  // ramp up, amps per second
+  // see NOTE: regarding ramp up in default uart_receive_package
+  ui32_temp = ((uint32_t)97656) / ((uint32_t)m_configuration_variables.ui8_ramp_up_amps_per_second_x10);
+  ui16_current_ramp_up_inverse_step = (uint16_t)ui32_temp;
+}
 
 void uart_receive_package(void)
 {
@@ -241,6 +290,11 @@ void uart_send_package(void)
 }
 
 # else
+
+void initializeConfigurationVariables(void)
+{
+  // do nothing
+}
 
 
 void uart_receive_package(void)
