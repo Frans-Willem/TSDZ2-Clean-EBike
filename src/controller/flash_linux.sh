@@ -14,7 +14,7 @@ DEFAULT_OPTION=../../releases/empty_memory/default_option.bin
 
 HEX_FILE=$1
 
-echo $HEX_FILE
+#echo $HEX_FILE
 
 #
 # clear memory
@@ -36,7 +36,7 @@ if (test $? -ne 0); then echo "clearing option failed"; exit 1; fi
 # write hex file
 #
 
-if test ! -f $HEX_FILE; then echo "hex file does not exist"; exit 1; fi
+if [ -f "$HEX_FILE" ]; then echo $HEX_FILE; else echo -e "\nhex file not found\n"; exit 1; fi
 
 echo -e "\nWRITING PROGRAM\n"
 stm8flash -c $PROGRAMMER -p $TARGET -s flash -w $HEX_FILE

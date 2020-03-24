@@ -29,8 +29,11 @@
     #define ASSIST_PEDAL_LEVEL4		0x08
     #define WALK_ASSIST           0x20
 #elif DEBUG_UART
+    #include <stdio.h>
+    #include <string.h>
     #define UART_RX_BUFFER_LEN 12
     #define UART_TX_BUFFER_LEN 9
+    static uint8_t ui8_uart_debug_data_indicator = 0;
 #else
     // change this value depending on how many data bytes there is to receive 
     //( Package = one start byte + data bytes + two bytes 16 bit CRC )
@@ -75,6 +78,43 @@ extern uint16_t   ui16_received_target_wheel_speed_x10;
 // and disable the interrupt. The interrupt should be enable again on main loop, after the package being processed
 void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
 {
+  
+#if DEBUG_UART
+
+  if (UART2_GetFlagStatus(UART2_FLAG_RXNE) == SET)
+  {
+    UART2->SR &= (uint8_t)~(UART2_FLAG_RXNE); // this may be redundant
+
+    uint8_t ui8_bytereceived = UART2_ReceiveData8 ();
+
+    if(ui8_rx_counter < UART_RX_BUFFER_LEN)
+    {
+      if(ui8_bytereceived == '\n')
+      {
+        ui8_rx_buffer[ui8_rx_counter] = 0x0;
+        ui8_rx_counter = 0;
+        ui8_received_package_flag = 1;
+      }
+      else if(!ui8_received_package_flag) // wait until buffer is cleared
+      {
+        ui8_rx_buffer[ui8_rx_counter] = ui8_bytereceived;
+        ui8_rx_counter++;
+      }
+    }
+    else
+    {
+      // overflow -> reset rx_counter
+      ui8_rx_counter = 0;
+    }
+    
+
+    //UART2_SendData8(ui8_bytereceived);
+    //printf(ui8_bytereceived);
+
+  }
+
+#else
+
   if (UART2_GetFlagStatus(UART2_FLAG_RXNE) == SET)
   {
     UART2->SR &= (uint8_t)~(UART2_FLAG_RXNE); // this may be redundant
@@ -118,10 +158,8 @@ void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
       break;
     }
   }
+#endif
 }
-
-
-#if VLCD
 
 void initializeConfigurationVariables(void)
 {
@@ -169,7 +207,14 @@ void initializeConfigurationVariables(void)
   // see NOTE: regarding ramp up in default uart_receive_package
   ui32_temp = ((uint32_t)97656) / ((uint32_t)m_configuration_variables.ui8_ramp_up_amps_per_second_x10);
   ui16_current_ramp_up_inverse_step = (uint16_t)ui32_temp;
+
+  lights_set_state (1);
+
 }
+
+
+#if VLCD
+
 
 void uart_receive_package(void)
 {
@@ -289,12 +334,88 @@ void uart_send_package(void)
   }
 }
 
+#elif DEBUG_UART
+
+void uart_receive_package(void)
+{
+
+  if(ui8_received_package_flag)
+  {
+    //printf("%.12s",ui8_rx_buffer);
+
+    if(strncmp(ui8_rx_buffer, "eco", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("eco\n");
+      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+    }
+    else if (strncmp(ui8_rx_buffer, "tour", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("tour\n");
+      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+    }
+    else if (strncmp(ui8_rx_buffer, "speed", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("speed\n");
+      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+    }
+    else if (strncmp(ui8_rx_buffer, "turbo", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("turbo\n");
+      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+    }
+    else if (strncmp(ui8_rx_buffer, "off", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("off\n");
+      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+    }
+    else if (strncmp(ui8_rx_buffer, "walkassist", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("walkassist\n");
+    }
+    else if (strncmp(ui8_rx_buffer, "light", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("light\n");
+      if(m_configuration_variables.ui8_lights)
+        m_configuration_variables.ui8_lights = 0;
+      else
+        m_configuration_variables.ui8_lights = 1;
+      lights_set_state (m_configuration_variables.ui8_lights);
+      
+    }
+    else if (strncmp(ui8_rx_buffer, "data", UART_RX_BUFFER_LEN) == 0)
+    {
+      printf("data\n");
+      if(ui8_uart_debug_data_indicator) 
+        ui8_uart_debug_data_indicator = 0;
+      else
+        ui8_uart_debug_data_indicator = 1; 
+    }
+    else
+    {
+      printf("comand not recognized\n");
+    }
+
+
+    ui8_received_package_flag = 0;
+
+  }
+}
+
+
+void uart_send_package (void)
+{
+  if(ui8_uart_debug_data_indicator)
+  {
+    printf("%d %d\n", ui8_pas_cadence_rpm, ui16_pedal_torque_x10);
+  }
+}
+
 # else
 
-void initializeConfigurationVariables(void)
-{
+//void initializeConfigurationVariables(void)
+//{
   // do nothing
-}
+//}
 
 
 void uart_receive_package(void)

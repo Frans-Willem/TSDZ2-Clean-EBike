@@ -8,7 +8,6 @@
 
 #include "ebike_app.h"
 #include <stdint.h>
-#include <stdio.h>
 #include "stm8s.h"
 #include "stm8s_gpio.h"
 #include "main.h"
@@ -80,8 +79,6 @@ volatile uint32_t   ui32_wheel_speed_sensor_tick_counter = 0;
 
 
 static void communications_controller (void);
-void uart_receive_package (void);
-void uart_send_package (void);
 
 // system functions
 static void ebike_control_motor (void);
@@ -355,15 +352,8 @@ static void ebike_control_motor (void)
 
 static void communications_controller (void)
 {
-#if DEBUG_UART
-
-#else
-
   uart_receive_package ();
-
   uart_send_package ();
-
-#endif
 }
 
 

@@ -75,6 +75,9 @@ void ebike_app_init (void);
 void ebike_app_controller (void);
 struct_configuration_variables* get_configuration_variables (void);
 
+void uart_receive_package (void);
+void uart_send_package (void);
+
 // functions required  in ebike_app_uart.c
 void ebike_app_set_battery_max_current (uint8_t ui8_value);
 uint16_t calc_filtered_battery_voltage (void);

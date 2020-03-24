@@ -106,6 +106,7 @@ int main (void)
 
     #if DEBUG_UART
     
+    /*
     ui16_TIM3_counter = TIM3_GetCounter();
     
     if((ui16_TIM3_counter - ui16_debug_uart_counter) > 50)
@@ -119,7 +120,7 @@ int main (void)
       ui8_adc_battery_current,
       ui8_foc_angle
       );
-    }
+    }*/
     
     #endif
   }
