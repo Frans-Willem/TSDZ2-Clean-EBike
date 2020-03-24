@@ -74,6 +74,7 @@ volatile uint16_t   ui16_wheel_speed_sensor_pwm_cycles_ticks = (uint16_t) WHEEL_
 uint8_t             ui8_wheel_speed_max = 0;
 float               f_wheel_speed_x10;
 uint16_t     ui16_wheel_speed_x10;
+uint16_t     ui16_wheel_speed_for_vlcd = 0;
 volatile uint32_t   ui32_wheel_speed_sensor_tick_counter = 0;
 
 
@@ -93,7 +94,6 @@ static void torque_sensor_read (void);
 static void calc_pedal_force_and_torque (void);
 static void calc_wheel_speed (void);
 static void calc_motor_temperature (void);
-static uint16_t calc_filtered_battery_voltage (void);
 
 static void apply_speed_limit (uint16_t ui16_speed_x10, uint8_t ui8_max_speed, uint8_t *ui8_target_current);
 static void apply_temperature_limiting (uint8_t *ui8_target_current);
@@ -353,7 +353,9 @@ static void ebike_control_motor (void)
 
 static void communications_controller (void)
 {
-#ifndef DEBUG_UART
+#if DEBUG_UART
+
+#else
 
   uart_receive_package ();
 
@@ -424,10 +426,17 @@ static void calc_wheel_speed(void)
     f_wheel_speed_x10 *= m_configuration_variables.ui16_wheel_perimeter; // millimeters per second
     f_wheel_speed_x10 *= 0.036; // ((3600 / (1000 * 1000)) * 10) kms per hour * 10
     ui16_wheel_speed_x10 = (uint16_t) f_wheel_speed_x10;
+
+    // the speed is a 16 bit integer that contains the time for one wheel rotation measured
+    // in ~2.04 ms units
+    // https://github.com/hurzhurz/tsdz2/blob/master/serial-communication.md
+    // pwm period = 64 us -> 2.04 ms / 64 us = 32
+    ui16_wheel_speed_for_vlcd = ui16_wheel_speed_sensor_pwm_cycles_ticks / 32;
   }
   else
   {
     ui16_wheel_speed_x10 = 0;
+    ui16_wheel_speed_for_vlcd = 0;
   }
 }
 
@@ -446,7 +455,7 @@ static void calc_motor_temperature(void)
 }
 
 
-static uint16_t calc_filtered_battery_voltage (void)
+uint16_t calc_filtered_battery_voltage (void)
 {
   uint16_t ui16_batt_voltage_filtered = (uint16_t) motor_get_adc_battery_voltage_filtered_10b () * ADC10BITS_BATTERY_VOLTAGE_PER_ADC_STEP_X512;
   return (ui16_batt_voltage_filtered >> 9);

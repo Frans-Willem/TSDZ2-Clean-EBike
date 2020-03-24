@@ -104,7 +104,7 @@ int main (void)
       continue;
     }
 
-    #ifdef DEBUG_UART
+    #if DEBUG_UART
     
     ui16_TIM3_counter = TIM3_GetCounter();
     

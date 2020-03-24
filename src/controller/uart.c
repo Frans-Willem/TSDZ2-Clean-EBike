@@ -16,7 +16,7 @@
 void uart2_init (void)
 {
   UART2_DeInit();
-#ifdef DEBUG_UART
+#if DEBUG_UART
   UART2_Init((uint32_t) 115200,
 #else
   UART2_Init((uint32_t) 9600,

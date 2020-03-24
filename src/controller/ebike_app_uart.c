@@ -2,6 +2,7 @@
 #include "stm8s.h"
 
 #include "ebike_app.h"
+#include "main.h"
 #include "interrupts.h"
 #include "utils.h"
 #include "lights.h"
@@ -10,15 +11,43 @@
 #include "adc.h"
 #include "uart.h"
 
+// UART related definitions and variables
 
-// UART
-#define UART_NUMBER_DATA_BYTES_TO_RECEIVE   6   // change this value depending on how many data bytes there is to receive ( Package = one start byte + data bytes + two bytes 16 bit CRC )
-#define UART_NUMBER_DATA_BYTES_TO_SEND      25  // change this value depending on how many data bytes there is to send ( Package = one start byte + data bytes + two bytes 16 bit CRC )
+#if VLCD
+    #define UART_RX_BUFFER_LEN 7
+    #define UART_TX_BUFFER_LEN 9
+    
+    #define RX_CHECK_CODE         (UART_RX_BUFFER_LEN - 1)															
+    #define TX_CHECK_CODE		      (UART_TX_BUFFER_LEN - 1)
+    #define TX_STX				        0x43
+    #define RX_STX                0x59		
+
+    #define ASSIST_PEDAL_LEVEL0	  0x10
+    #define ASSIST_PEDAL_LEVEL1	  0x40
+    #define ASSIST_PEDAL_LEVEL2	  0x02
+    #define ASSIST_PEDAL_LEVEL3	  0x04
+    #define ASSIST_PEDAL_LEVEL4		0x08
+    #define WALK_ASSIST           0x20
+#elif DEBUG_UART
+    #define UART_RX_BUFFER_LEN 12
+    #define UART_TX_BUFFER_LEN 9
+#else
+    // change this value depending on how many data bytes there is to receive 
+    //( Package = one start byte + data bytes + two bytes 16 bit CRC )
+    #define UART_NUMBER_DATA_BYTES_TO_RECEIVE 6   
+    #define UART_RX_BUFFER_LEN (UART_NUMBER_DATA_BYTES_TO_RECEIVE + 3)
+    // change this value depending on how many data bytes there is to send 
+    // ( Package = one start byte + data bytes + two bytes 16 bit CRC )
+    #define UART_NUMBER_DATA_BYTES_TO_SEND      25 
+    #define UART_TX_BUFFER_LEN (UART_NUMBER_DATA_BYTES_TO_SEND + 3)
+#endif
 
 static volatile uint8_t ui8_received_package_flag = 0;
-static volatile uint8_t ui8_rx_buffer[UART_NUMBER_DATA_BYTES_TO_RECEIVE + 3];
+//static volatile uint8_t ui8_rx_buffer[UART_NUMBER_DATA_BYTES_TO_RECEIVE + 3];
+static volatile uint8_t ui8_rx_buffer[UART_RX_BUFFER_LEN];
 static volatile uint8_t ui8_rx_counter = 0;
-static volatile uint8_t ui8_tx_buffer[UART_NUMBER_DATA_BYTES_TO_SEND + 3];
+//static volatile uint8_t ui8_tx_buffer[UART_NUMBER_DATA_BYTES_TO_SEND + 3];
+static volatile uint8_t ui8_tx_buffer[UART_TX_BUFFER_LEN];
 static volatile uint8_t ui8_i;
 static volatile uint8_t ui8_byte_received;
 static volatile uint8_t ui8_state_machine = 0;
@@ -26,9 +55,13 @@ static uint16_t  ui16_crc_rx;
 static uint16_t  ui16_crc_tx;
 static volatile uint8_t ui8_message_ID = 0;
 
-// extern variables
+
+// external variables
+// todo: move extern declarations to ebike_app.h
+
 extern volatile struct_configuration_variables m_configuration_variables;
 extern uint16_t     ui16_wheel_speed_x10;
+extern uint16_t     ui16_wheel_speed_for_vlcd;
 extern volatile uint8_t  ui8_throttle;
 extern volatile uint8_t  ui8_torque_sensor;
 extern uint8_t   ui8_pedal_human_power;
@@ -71,7 +104,8 @@ void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
       ui8_rx_counter++;
 
       // reset if it is the last byte of the package and index is out of bounds
-      if (ui8_rx_counter >= UART_NUMBER_DATA_BYTES_TO_RECEIVE + 3)
+      //if (ui8_rx_counter >= UART_NUMBER_DATA_BYTES_TO_RECEIVE + 3)
+      if (ui8_rx_counter >= UART_RX_BUFFER_LEN)
       {
         ui8_rx_counter = 0;
         ui8_state_machine = 0;
@@ -85,6 +119,128 @@ void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
     }
   }
 }
+
+#if VLCD
+
+void uart_receive_package(void)
+{
+  if (ui8_received_package_flag)
+  {
+    uint8_t ui8_assist_level;
+    uint8_t ui8_rx_check_code = 0x00;
+    for (ui8_i = 0; ui8_i < RX_CHECK_CODE; ui8_i++)
+    {
+      ui8_rx_check_code += ui8_rx_buffer[ui8_i];
+    }
+
+    // see if check code is ok...
+    if (ui8_rx_check_code == ui8_rx_buffer[RX_CHECK_CODE])
+    {
+      ui8_assist_level = ui8_rx_buffer[1] & 0x5E; // mask: 01011110
+
+      switch (ui8_assist_level)
+      {
+      case ASSIST_PEDAL_LEVEL0: // OFF
+        m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+        break;
+      case ASSIST_PEDAL_LEVEL1: // ECO
+        m_configuration_variables.ui8_assist_level_factor_x10 = 10;
+        break;
+      case ASSIST_PEDAL_LEVEL2: // TOUR
+        m_configuration_variables.ui8_assist_level_factor_x10 = 20;
+        break;
+      case ASSIST_PEDAL_LEVEL3: // SPEED
+        m_configuration_variables.ui8_assist_level_factor_x10 = 30;
+        break;
+      case ASSIST_PEDAL_LEVEL4: // TURBO
+        m_configuration_variables.ui8_assist_level_factor_x10 = 40;
+        break;
+      default:
+        break;
+      }
+
+      if ((ui8_rx_buffer[1]) & (1 << 0) ? 1 : 0)
+      {
+        m_configuration_variables.ui8_lights = 1;
+        lights_set_state(m_configuration_variables.ui8_lights);
+      }
+      else
+      {
+        m_configuration_variables.ui8_lights = 0;
+        lights_set_state(m_configuration_variables.ui8_lights);
+      }
+      // walk assist
+      if (ui8_rx_buffer[1] & 0x20)
+      {
+        m_configuration_variables.ui8_walk_assist = 1;
+      }
+      else
+      {
+        m_configuration_variables.ui8_walk_assist = 0;
+      }
+    }
+
+    // signal that we processed the full package
+    ui8_received_package_flag = 0;
+
+    // enable UART2 receive interrupt as we are now ready to receive a new package
+    UART2->CR2 |= (1 << 5);
+  }
+}
+
+void uart_send_package(void)
+{
+  // send the data to the LCD
+  // start up byte
+  ui8_tx_buffer[0] = TX_STX;
+
+  //uint16_t ui16_temp = motor_get_adc_battery_voltage_filtered_10b();
+  //uint8_t ui8_battery_state_of_charge = 0;
+
+  //ui16_temp = ui16_temp / 10;
+  uint16_t ui16_temp = calc_filtered_battery_voltage();
+
+  if (ui16_temp > 54)
+    ui8_tx_buffer[1] = 0x0C; // 6/6
+  else if (ui16_temp >= 51)
+    ui8_tx_buffer[1] = 0x0A; // 5/6
+  else if (ui16_temp >= 47)
+    ui8_tx_buffer[1] = 0x08; // 4/6
+  else if (ui16_temp >= 43)
+    ui8_tx_buffer[1] = 0x06; // 3/6
+  else if (ui16_temp >= 41.6)
+    ui8_tx_buffer[1] = 0x04; // 2/6
+  else if (ui16_temp >= 38)
+    ui8_tx_buffer[1] = 0x02; // 1/6
+  else
+    ui8_tx_buffer[1] = 0x00; // 1/6
+
+  // working status?
+  ui8_tx_buffer[2] = 0x0;
+  // reserved
+  ui8_tx_buffer[3] = 0x46;
+  ui8_tx_buffer[4] = 0x46;
+  ui8_tx_buffer[5] = 0; // clear display / fault code?
+  // wheel speed
+  ui8_tx_buffer[6] = (uint8_t)(ui16_wheel_speed_for_vlcd & 0xFF);
+  ui8_tx_buffer[7] = (uint8_t)(ui16_wheel_speed_for_vlcd >> 8);
+
+  // prepare check code of the package
+  uint8_t ui8_tx_check_code = 0x00;
+  for (ui8_i = 0; ui8_i < TX_CHECK_CODE; ui8_i++)
+  {
+    ui8_tx_check_code += ui8_tx_buffer[ui8_i];
+  }
+  ui8_tx_buffer[TX_CHECK_CODE] = ui8_tx_check_code;
+
+  // send the full package to UART
+  for (ui8_i = 0; ui8_i < UART_TX_BUFFER_LEN; ui8_i++)
+  {
+    putchar(ui8_tx_buffer[ui8_i]);
+  }
+}
+
+# else
 
 
 void uart_receive_package(void)
@@ -349,3 +505,5 @@ void uart_send_package(void)
     putchar (ui8_tx_buffer[ui8_i]);
   }
 }
+
+#endif
