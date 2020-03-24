@@ -50,6 +50,7 @@ EXTRASRCS = \
 	adc.c \
 	timers.c \
 	ebike_app.c \
+	ebike_app_uart.c \
 	utils.c \
 	eeprom.c \
 	lights.c \

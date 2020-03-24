@@ -73,6 +73,8 @@ extern volatile uint32_t ui32_wheel_speed_sensor_tick_counter;
 
 void ebike_app_init (void);
 void ebike_app_controller (void);
+// accessed in ebike_app_uart.c
+void ebike_app_set_battery_max_current (uint8_t ui8_value);
 struct_configuration_variables* get_configuration_variables (void);
 
 #endif /* _EBIKE_APP_H_ */
