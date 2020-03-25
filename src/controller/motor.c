@@ -399,9 +399,8 @@ uint8_t ui8_current_controller_counter = 0;
 volatile uint8_t ui8_adc_target_motor_phase_max_current;
 volatile uint8_t ui8_g_adc_motor_phase_current_offset;
 
-uint8_t ui8_pas_state_old;
-uint8_t ui8_pas_after_first_pulse = 0;
-uint16_t ui16_pas_counter = (uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS;
+uint8_t ui8_pas_state_old = 0;
+uint16_t ui16_pas_counter = (uint16_t) PAS_MAX_PWM_CYCLE_TICKS;
 
 volatile uint16_t ui16_torque_sensor_throttle_processed_value = 0;
 uint8_t ui8_torque_sensor_pas_signal_change_counter = 0;
@@ -778,107 +777,50 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
 
   /****************************************************************************/
 
+  // The pas cadence signal is available on two gpio pins.
+  // The signal on the PAS1 pin lags behind the signal on the PAS2 pin
+  // by approximately 90 degrees (quadrature signal) in the case of forward rotation.
+  // In the case of backward rotation the roles of the pins are reversed.
+  //
+  // Pedal cadence is simply measured by the number of pwm cycle ticks
+  // between two 0 to 1 transitions on the PAS1 pin.
+  //
+  // If a transition from 0 to 1 is detected on the PAS1 pin, forward rotation
+  // can be detected by checking if the PAS2 pin is high already.
+  // 
 
+  if(ui16_pas_counter < PAS_MAX_PWM_CYCLE_TICKS)
+    ui16_pas_counter++;
+  else
+    ui16_pas_pwm_cycles_ticks = PAS_MAX_PWM_CYCLE_TICKS;
 
-  // calc PAS timming between each positive pulses, in PWM cycles ticks
-  // calc PAS on and off timming of each pulse, in PWM cycles ticks
-  ui16_pas_counter++;
-
-  // detect PAS signal changes
   uint8_t ui8_pas_state = (PAS1__PORT->IDR & PAS1__PIN);
 
   // PAS signal did change
   if(ui8_pas_state != ui8_pas_state_old)
   {
     ui8_pas_state_old = ui8_pas_state;
-
-    // consider only when PAS signal transition from 0 to 1
-    if(ui8_pas_state != 0)
+    if(ui8_pas_state) // tranistion from zero to one on PAS1 pin
     {
-      // keep track of first pulse
-      if(!ui8_pas_after_first_pulse)
+      if ((PAS2__PORT->IDR & PAS2__PIN)) // PAS2 pin is 1 -> forward rotation
       {
-        ui8_pas_after_first_pulse = 1;
-        ui16_pas_pwm_cycles_ticks = (uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS;
-      }
-      else
-      {
-        // limit PAS cadence to be less than PAS_ABSOLUTE_MAX_CADENCE_PWM_CYCLE_TICKS
-        // also PAS cadence should be zero if rotating backwards
-        if(ui16_pas_counter < ((uint16_t) PAS_ABSOLUTE_MAX_CADENCE_PWM_CYCLE_TICKS))
+        enm_g_pedaling_direction = pedaling_direction_forward;
+        if(ui16_pas_counter < PAS_MIN_PWM_CYCLE_TICKS)
         {
-          ui16_pas_pwm_cycles_ticks = (uint16_t) PAS_ABSOLUTE_MAX_CADENCE_PWM_CYCLE_TICKS;
+          ui16_pas_pwm_cycles_ticks = PAS_MIN_PWM_CYCLE_TICKS;
         }
         else
         {
           ui16_pas_pwm_cycles_ticks = ui16_pas_counter;
-          ui16_pas_counter = 0;
         }
-
-        // see the direction
-        if ((PAS2__PORT->IDR & PAS2__PIN) == 0)
-        {
-          enm_g_pedaling_direction = pedaling_direction_backward;
-        }
-        else
-        {
-          enm_g_pedaling_direction = pedaling_direction_forward;
-        }
+        ui16_pas_counter = 0;
       }
-    }
-    else
-    {
-      // keep track of first pulse
-      if(ui8_pas_after_first_pulse)
+      else // backward
       {
-        // see the direction
-        if ((PAS2__PORT->IDR & PAS2__PIN) != 0)
-        {
-          enm_g_pedaling_direction = pedaling_direction_backward;
-        }
-        else
-        {
-          enm_g_pedaling_direction = pedaling_direction_forward;
-        }
+        enm_g_pedaling_direction = pedaling_direction_backward;
       }
     }
-
-    // NOTE: we are not using the next block of code to calculate the max torque signal one pedal rotation
-    // but lets save this because we may want to use it in future
-//    // filter the torque signal, by saving the max value of each one pedal rotation
-//    ui16_torque_sensor_throttle_value = ui16_adc_read_torque_sensor_10b () - 184;
-//    if (ui16_torque_sensor_throttle_value > 800) ui16_torque_sensor_throttle_value = 0;
-//
-//    ui8_torque_sensor_pas_signal_change_counter++;
-//    if (ui8_torque_sensor_pas_signal_change_counter > (PAS_NUMBER_MAGNETS << 1)) // PAS_NUMBER_MAGNETS*2 means a full pedal rotation
-//    {
-//      ui8_torque_sensor_pas_signal_change_counter = 1; // this is the first cycle
-//      ui16_torque_sensor_throttle_processed_value = ui16_torque_sensor_throttle_max_value; // store the max value on the output variable of this algorithm
-//      ui16_torque_sensor_throttle_max_value = 0; // reset the max value
-//    }
-//    else
-//    {
-//      // store the max value
-//      if (ui16_torque_sensor_throttle_value > ui16_torque_sensor_throttle_max_value)
-//      {
-//        ui16_torque_sensor_throttle_max_value = ui16_torque_sensor_throttle_value;
-//      }
-//    }
-
   }
-
-  // limit min PAS cadence
-  if (ui16_pas_counter > ((uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS))
-  {
-    ui16_pas_pwm_cycles_ticks = (uint16_t) PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS;
-    ui16_pas_counter = 0;
-    ui8_pas_after_first_pulse = 0;
-    enm_g_pedaling_direction = pedaling_direction_unknown;
-
-//    ui16_torque_sensor_throttle_processed_value = 0;
-  }
-
-
 
   /****************************************************************************/
   

@@ -38,6 +38,10 @@ if (test $? -ne 0); then echo "clearing option failed"; exit 1; fi
 
 if [ -f "$HEX_FILE" ]; then echo $HEX_FILE; else echo -e "\nhex file not found\n"; exit 1; fi
 
+echo -e "\n"
+stm8-size $HEX_FILE
+if (test $? -ne 0); then echo "stm8-size failed"; exit 1; fi 
+
 echo -e "\nWRITING PROGRAM\n"
 stm8flash -c $PROGRAMMER -p $TARGET -s flash -w $HEX_FILE
 if (test $? -ne 0); then echo "writing hex file failed"; exit 1; fi 

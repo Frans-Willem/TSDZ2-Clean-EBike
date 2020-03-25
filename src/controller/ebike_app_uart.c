@@ -10,6 +10,7 @@
 #include "eeprom.h"
 #include "adc.h"
 #include "uart.h"
+#include "pins.h"
 
 // UART related definitions and variables
 
@@ -34,6 +35,8 @@
     #define UART_RX_BUFFER_LEN 12
     #define UART_TX_BUFFER_LEN 9
     static uint8_t ui8_uart_debug_data_indicator = 0;
+    extern volatile uint16_t ui16_pas_pwm_cycles_ticks;
+    extern volatile enum pedaling_direction_t enm_g_pedaling_direction;
 #else
     // change this value depending on how many data bytes there is to receive 
     //( Package = one start byte + data bytes + two bytes 16 bit CRC )
@@ -346,7 +349,7 @@ void uart_receive_package(void)
     if(strncmp(ui8_rx_buffer, "eco", UART_RX_BUFFER_LEN) == 0)
     {
       printf("eco\n");
-      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+      m_configuration_variables.ui8_assist_level_factor_x10 = 10;
     }
     else if (strncmp(ui8_rx_buffer, "tour", UART_RX_BUFFER_LEN) == 0)
     {
@@ -406,6 +409,17 @@ void uart_send_package (void)
 {
   if(ui8_uart_debug_data_indicator)
   {
+
+    /* pas quadrature signal */
+    //uint8_t ui8_pas1_state = 0; 
+    //if(PAS1__PORT->IDR & PAS1__PIN)
+    //  ui8_pas1_state = 1;
+    //uint8_t ui8_pas2_state = 0;
+    //if(PAS2__PORT->IDR & PAS2__PIN)
+    //  ui8_pas2_state = 1;
+    //printf("%d %d\n", ui8_pas1_state, ui8_pas2_state);
+
+    //printf("%d %d\n", ui16_pas_pwm_cycles_ticks, enm_g_pedaling_direction);
     printf("%d %d\n", ui8_pas_cadence_rpm, ui16_pedal_torque_x10);
   }
 }

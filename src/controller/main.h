@@ -94,9 +94,8 @@
 
 // PAS
 #define PAS_NUMBER_MAGNETS                                        20 // see note below
-#define PAS_NUMBER_MAGNETS_X2                                     (PAS_NUMBER_MAGNETS * 2)
-#define PAS_ABSOLUTE_MAX_CADENCE_PWM_CYCLE_TICKS                  (6250 / PAS_NUMBER_MAGNETS)   // max hard limit to 150 RPM PAS cadence, see note below
-#define PAS_ABSOLUTE_MIN_CADENCE_PWM_CYCLE_TICKS                  (93750 / PAS_NUMBER_MAGNETS)  // min hard limit to 10 RPM PAS cadence, see note below
+#define PAS_MIN_PWM_CYCLE_TICKS                                   312   // max hard limit to 150 RPM PAS cadence, see note below
+#define PAS_MAX_PWM_CYCLE_TICKS                                   15625 // min hard limit to 3 RPM PAS cadence, see note below
 
 /*---------------------------------------------------------
   NOTE: regarding PAS
@@ -106,7 +105,7 @@
 
   x = (1/(150RPM/60)) / (0.000064)
   
-  PAS_ABSOLUTE_MAX_CADENCE_PWM_CYCLE_TICKS = 
+  PAS_MIN_PWM_CYCLE_TICKS = 
   (x / PAS_NUMBER_MAGNETS)
 ---------------------------------------------------------*/
 
@@ -119,7 +118,7 @@
 
 
 // EEPROM memory variables default values
-#define DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10                     10  // 1.0
+#define DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10                     0  // 1.0
 #define DEFAULT_VALUE_CONFIG_0                                    0
 #define DEFAULT_VALUE_BATTERY_MAX_CURRENT                         10  // 10 amps
 #define DEFAULT_VALUE_TARGET_BATTERY_MAX_POWER_X10                50  // 500 watts
