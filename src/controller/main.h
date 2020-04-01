@@ -11,8 +11,8 @@
 
 #include "config.h"
 
-#define DEBUG_UART 1
-#define VLCD 0
+#define DEBUG_UART 0
+#define VLCD 1
 
 #define PWM_CYCLES_COUNTER_MAX                    3125    // 5 erps minimum speed; 1/5 = 200ms; 200ms/64us = 3125
 #define PWM_CYCLES_SECOND                         15625L  // 1 / 64us(PWM period)

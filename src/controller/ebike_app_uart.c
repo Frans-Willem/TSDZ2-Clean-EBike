@@ -64,6 +64,7 @@ static volatile uint8_t ui8_rx_buffer[UART_RX_BUFFER_LEN];
 static volatile uint8_t ui8_rx_counter = 0;
 //static volatile uint8_t ui8_tx_buffer[UART_NUMBER_DATA_BYTES_TO_SEND + 3];
 static volatile uint8_t ui8_tx_buffer[UART_TX_BUFFER_LEN];
+static volatile uint8_t ui8_tx_buffer_index;
 static volatile uint8_t ui8_i;
 static volatile uint8_t ui8_byte_received;
 static volatile uint8_t ui8_state_machine = 0;
@@ -136,6 +137,32 @@ void UART2_RX_IRQHandler(void) __interrupt(UART2_RX_IRQHANDLER)
       default:
       break;
     }
+  }
+}
+
+void UART2_TX_IRQHandler(void) __interrupt(UART2_TX_IRQHANDLER)
+{
+  if (UART2_GetFlagStatus(UART2_FLAG_TXE) == SET)
+  {
+    if(ui8_tx_buffer_index < UART_TX_BUFFER_LEN)  // bytes to send
+    {
+      // clearing the TXE bit is always performed by a write to the data register
+      UART2_SendData8(ui8_tx_buffer[ui8_tx_buffer_index]);
+      ++ui8_tx_buffer_index;
+      if(ui8_tx_buffer_index == UART_TX_BUFFER_LEN)
+      {
+        // buffer empty
+        // disable TIEN (TXE)
+        UART2_ITConfig(UART2_IT_TXE, DISABLE);
+      }
+    }
+  }
+  else
+  {
+    // TXE interrupt should never occur if there is nothing to send in the buffer
+    // send a zero to clear TXE and disable the interrupt
+    UART2_SendData8(0);
+    UART2_ITConfig(UART2_IT_TXE, DISABLE);
   }
 }
 
@@ -307,11 +334,16 @@ void uart_send_package(void)
   }
   ui8_tx_buffer[TX_CHECK_CODE] = ui8_tx_check_code;
 
+  //UART2_ITConfig(UART2_IT_TXE, DISABLE);
+  // should be an atomic operation already
+  ui8_tx_buffer_index = 0;
+  // start transmition
+  UART2_ITConfig(UART2_IT_TXE, ENABLE);
   // send the full package to UART
-  for (ui8_i = 0; ui8_i < UART_TX_BUFFER_LEN; ui8_i++)
-  {
-    putchar(ui8_tx_buffer[ui8_i]);
-  }
+  //for (ui8_i = 0; ui8_i < UART_TX_BUFFER_LEN; ui8_i++)
+  //{
+  //  putchar(ui8_tx_buffer[ui8_i]);
+  //}
 }
 
 #elif DEBUG_UART
