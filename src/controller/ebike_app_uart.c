@@ -37,6 +37,8 @@
     static uint8_t ui8_uart_debug_data_indicator = 0;
     extern volatile uint16_t ui16_pas_pwm_cycles_ticks;
     extern volatile enum pedaling_direction_t enm_g_pedaling_direction;
+    extern volatile uint8_t ui8_g_adc_battery_current;
+    extern uint8_t ui8_adc_battery_current_max;
 #else
     // change this value depending on how many data bytes there is to receive 
     //( Package = one start byte + data bytes + two bytes 16 bit CRC )
@@ -354,17 +356,17 @@ void uart_receive_package(void)
     else if (strncmp(ui8_rx_buffer, "tour", UART_RX_BUFFER_LEN) == 0)
     {
       printf("tour\n");
-      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+      m_configuration_variables.ui8_assist_level_factor_x10 = 20;
     }
     else if (strncmp(ui8_rx_buffer, "speed", UART_RX_BUFFER_LEN) == 0)
     {
       printf("speed\n");
-      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+      m_configuration_variables.ui8_assist_level_factor_x10 = 30;
     }
     else if (strncmp(ui8_rx_buffer, "turbo", UART_RX_BUFFER_LEN) == 0)
     {
       printf("turbo\n");
-      m_configuration_variables.ui8_assist_level_factor_x10 = 0;
+      m_configuration_variables.ui8_assist_level_factor_x10 = 40;
     }
     else if (strncmp(ui8_rx_buffer, "off", UART_RX_BUFFER_LEN) == 0)
     {
@@ -420,7 +422,9 @@ void uart_send_package (void)
     //printf("%d %d\n", ui8_pas1_state, ui8_pas2_state);
 
     //printf("%d %d\n", ui16_pas_pwm_cycles_ticks, enm_g_pedaling_direction);
-    printf("%d %d\n", ui8_pas_cadence_rpm, ui16_pedal_torque_x10);
+    printf("%d %d %d\n", ui8_pas_cadence_rpm, ui16_pas_pwm_cycles_ticks, enm_g_pedaling_direction);
+    //printf("%d %d\n", ui8_pas_cadence_rpm, ui16_pedal_torque_x10);
+    //printf("%d %d\n", ui8_adc_battery_current_max, ui8_g_adc_battery_current);
   }
 }
 

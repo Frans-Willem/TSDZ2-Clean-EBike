@@ -751,15 +751,30 @@ static void apply_boost_fade_out(uint8_t *ui8_target_current)
 
 static void read_pas_cadence(void)
 {
-  // cadence in RPM =  60 / (ui16_pas_timer2_ticks * PAS_NUMBER_MAGNETS * 0.000064)
-  if((ui16_pas_pwm_cycles_ticks >= ((uint16_t) PAS_MAX_PWM_CYCLE_TICKS)) ||
-      (enm_g_pedaling_direction != pedaling_direction_forward)) // if not rotating pedals forward
+  // conversion of ui16_pas_pwm_cycle_ticks evaluated in the motor
+  // pwm interrupt to rpm
+  if(enm_g_pedaling_direction != pedaling_direction_forward)
+  {
+    ui8_pas_cadence_rpm = 0;
+  }
+  else if(ui16_pas_pwm_cycles_ticks >= PAS_MAX_PWM_CYCLE_TICKS)
   { 
+    // very slow cadence, set rpm value to zero
     ui8_pas_cadence_rpm = 0; 
+  }
+  else if(ui16_pas_pwm_cycles_ticks <= PAS_MIN_PWM_CYCLE_TICKS)
+  {
+    // higher than expected cadence, set rpm value to zero for safety
+    ui8_pas_cadence_rpm = 0;
   }
   else
   {
-    ui8_pas_cadence_rpm = (uint8_t) (60 / (((float) ui16_pas_pwm_cycles_ticks) * ((float) PAS_NUMBER_MAGNETS) * 0.000064));
+    // cadence in RPM =  60 / (ui16_pas_timer2_ticks * PAS_NUMBER_MAGNETS * 0.000064)
+    //ui8_pas_cadence_rpm = (uint8_t) (60 / (((float) ui16_pas_pwm_cycles_ticks) * ((float) PAS_NUMBER_MAGNETS) * 0.000064));
+    // 60 / (20 * 0.000064) = 46875;
+    // overflow should not occur:
+    // min value of ui16_pas_pwm_cycle_ticks = PAS_MIN_PWM_CYCLE_TICKS = 312 -> ui8_pas_cadence_rpm = 150
+    ui8_pas_cadence_rpm = (uint8_t) (((uint16_t) 46875) / ui16_pas_pwm_cycles_ticks);
   }
 }
 

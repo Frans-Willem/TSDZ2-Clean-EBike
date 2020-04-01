@@ -11,8 +11,8 @@
 
 #include "config.h"
 
-#define DEBUG_UART 0
-#define VLCD 1
+#define DEBUG_UART 1
+#define VLCD 0
 
 #define PWM_CYCLES_COUNTER_MAX                    3125    // 5 erps minimum speed; 1/5 = 200ms; 200ms/64us = 3125
 #define PWM_CYCLES_SECOND                         15625L  // 1 / 64us(PWM period)
@@ -118,7 +118,7 @@
 
 
 // EEPROM memory variables default values
-#define DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10                     0  // 1.0
+#define DEFAULT_VALUE_ASSIST_LEVEL_FACTOR_X10                     10  // 1.0
 #define DEFAULT_VALUE_CONFIG_0                                    0
 #define DEFAULT_VALUE_BATTERY_MAX_CURRENT                         10  // 10 amps
 #define DEFAULT_VALUE_TARGET_BATTERY_MAX_POWER_X10                50  // 500 watts

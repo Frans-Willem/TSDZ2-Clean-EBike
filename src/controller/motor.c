@@ -788,7 +788,11 @@ void TIM1_CAP_COM_IRQHandler(void) __interrupt(TIM1_CAP_COM_IRQHANDLER)
   // If a transition from 0 to 1 is detected on the PAS1 pin, forward rotation
   // can be detected by checking if the PAS2 pin is high already.
   // 
-
+  // The ui16_pas_pwm_cycles_ticks variable takes values between PAS_MIN_PWM_CYCLE_TICKS
+  // and PAS_MAX_PWM_CYCLE_TICKS. If there is no forward zero to one transition (for example
+  // when pedaling backwards), ui16_pas_pwm_cycles_ticks is set to PAS_MAX_PWM_CYCLE_TICKS.
+  // Conversion to rpm is done in the function read_pas_cadence().
+  //
   if(ui16_pas_counter < PAS_MAX_PWM_CYCLE_TICKS)
     ui16_pas_counter++;
   else

@@ -44,8 +44,8 @@
  * PC2  (TIM1_CH2)    | out | PWM_phase_B_high
  * PC1  (TIM1_CH1)    | out | PWM_phase_C_high
  *
- * PD5  (UART2_TX)    | out | usart_tx
- * PD6  (UART2_RX)    | in  | usart_rx
+ * PD5  (UART2_TX)    | out | uart_tx
+ * PD6  (UART2_RX)    | in  | uart_rx
  *
  * PC6                | in  | brake
  * PB7  (ADC_AIN7)    | in  | throttle
