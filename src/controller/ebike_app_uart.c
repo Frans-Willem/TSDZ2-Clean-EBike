@@ -33,8 +33,16 @@
     #include <stdio.h>
     #include <string.h>
     #define UART_RX_BUFFER_LEN 12
-    #define UART_TX_BUFFER_LEN 9
+    #define UART_TX_BUFFER_LEN 20
     static uint8_t ui8_uart_debug_data_indicator = 0;
+
+    // tx ring buffer for uart debug communication
+    char string_buffer[UART_TX_BUFFER_LEN]; // used for sprintf
+    uint8_t uart_tx_ring_buffer[UART_TX_BUFFER_LEN];
+    uint8_t uart_tx_ring_buffer_head = 0;
+    uint8_t uart_tx_ring_buffer_tail = 0;
+    uint8_t uart_tx_ring_buffer_capacity = UART_TX_BUFFER_LEN;
+
     extern volatile uint16_t ui16_pas_pwm_cycles_ticks;
     extern volatile enum pedaling_direction_t enm_g_pedaling_direction;
     extern volatile uint8_t ui8_g_adc_battery_current;
@@ -81,45 +89,11 @@ extern uint16_t   ui16_received_target_wheel_speed_x10;
 // This is the interrupt that happens when UART2 receives data. We need it to be the fastest possible and so
 // we do: receive every byte and assembly as a package, finally, signal that we have a package to process (on main slow loop)
 // and disable the interrupt. The interrupt should be enable again on main loop, after the package being processed
-void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
+
+#if !DEBUG_UART // uart rx interrupt for display communication
+
+void UART2_RX_IRQHandler(void) __interrupt(UART2_RX_IRQHANDLER)
 {
-  
-#if DEBUG_UART
-
-  if (UART2_GetFlagStatus(UART2_FLAG_RXNE) == SET)
-  {
-    UART2->SR &= (uint8_t)~(UART2_FLAG_RXNE); // this may be redundant
-
-    uint8_t ui8_bytereceived = UART2_ReceiveData8 ();
-
-    if(ui8_rx_counter < UART_RX_BUFFER_LEN)
-    {
-      if(ui8_bytereceived == '\n')
-      {
-        ui8_rx_buffer[ui8_rx_counter] = 0x0;
-        ui8_rx_counter = 0;
-        ui8_received_package_flag = 1;
-      }
-      else if(!ui8_received_package_flag) // wait until buffer is cleared
-      {
-        ui8_rx_buffer[ui8_rx_counter] = ui8_bytereceived;
-        ui8_rx_counter++;
-      }
-    }
-    else
-    {
-      // overflow -> reset rx_counter
-      ui8_rx_counter = 0;
-    }
-    
-
-    //UART2_SendData8(ui8_bytereceived);
-    //printf(ui8_bytereceived);
-
-  }
-
-#else
-
   if (UART2_GetFlagStatus(UART2_FLAG_RXNE) == SET)
   {
     UART2->SR &= (uint8_t)~(UART2_FLAG_RXNE); // this may be redundant
@@ -163,8 +137,9 @@ void UART2_IRQHandler(void) __interrupt(UART2_IRQHANDLER)
       break;
     }
   }
-#endif
 }
+
+#endif
 
 void initializeConfigurationVariables(void)
 {
@@ -341,6 +316,94 @@ void uart_send_package(void)
 
 #elif DEBUG_UART
 
+void UART2_TX_IRQHandler(void) __interrupt(UART2_TX_IRQHANDLER)
+{
+  if (UART2_GetFlagStatus(UART2_FLAG_TXE) == SET)
+  {
+    if(uart_tx_ring_buffer_capacity < UART_TX_BUFFER_LEN)  // bytes to send
+    {
+      // clearing the TXE bit is always performed by a write to the data register
+      UART2_SendData8(uart_tx_ring_buffer[uart_tx_ring_buffer_tail]);
+      ++uart_tx_ring_buffer_capacity;
+      ++uart_tx_ring_buffer_tail;
+      if(uart_tx_ring_buffer_tail >= UART_TX_BUFFER_LEN)
+        uart_tx_ring_buffer_tail = 0;
+      if(uart_tx_ring_buffer_tail == uart_tx_ring_buffer_head)
+      {
+        // buffer empty
+        // disable TIEN (TXE)
+        UART2_ITConfig(UART2_IT_TXE, DISABLE);
+      }
+    }
+  }
+  else
+  {
+    // TXE interrupt should never occur if there is nothing to send in the buffer
+    // send '!' if it should happen
+    UART2_SendData8(33);
+  }
+}
+
+
+void UART2_RX_IRQHandler(void) __interrupt(UART2_RX_IRQHANDLER)
+{
+  
+  if (UART2_GetFlagStatus(UART2_FLAG_RXNE) == SET)
+  {
+    UART2->SR &= (uint8_t)~(UART2_FLAG_RXNE); // this may be redundant
+
+    uint8_t ui8_bytereceived = UART2_ReceiveData8 ();
+
+    if(ui8_rx_counter < UART_RX_BUFFER_LEN)
+    {
+      if(ui8_bytereceived == '\n')
+      {
+        ui8_rx_buffer[ui8_rx_counter] = 0x0;
+        ui8_rx_counter = 0;
+        ui8_received_package_flag = 1;
+      }
+      else if(!ui8_received_package_flag) // wait until buffer is cleared
+      {
+        ui8_rx_buffer[ui8_rx_counter] = ui8_bytereceived;
+        ui8_rx_counter++;
+      }
+    }
+    else
+    {
+      // overflow -> reset rx_counter
+      ui8_rx_counter = 0;
+    }
+    
+
+    //UART2_SendData8(ui8_bytereceived);
+    //printf(ui8_bytereceived);
+
+  }
+}
+
+void uart_send_string(const char* c)
+{
+  uint8_t len = strlen(c);
+  if(len > uart_tx_ring_buffer_capacity)
+  {
+    // not sending if no capacity
+    return;
+    // len = uart_tx_ring_buffer_capacity;
+  }
+  for(uint8_t i = 0; i < len; ++i)
+  {
+    uart_tx_ring_buffer[uart_tx_ring_buffer_head] = c[i];
+    ++uart_tx_ring_buffer_head;
+    if(uart_tx_ring_buffer_head >= UART_TX_BUFFER_LEN)
+      uart_tx_ring_buffer_head = 0;
+  }
+  // this operation has to be atomic
+  UART2_ITConfig(UART2_IT_TXE, DISABLE);
+  uart_tx_ring_buffer_capacity -= len;
+  // start transmition
+  UART2_ITConfig(UART2_IT_TXE, ENABLE);
+}
+
 void uart_receive_package(void)
 {
 
@@ -422,9 +485,11 @@ void uart_send_package (void)
     //printf("%d %d\n", ui8_pas1_state, ui8_pas2_state);
 
     //printf("%d %d\n", ui16_pas_pwm_cycles_ticks, enm_g_pedaling_direction);
-    printf("%d %d %d\n", ui8_pas_cadence_rpm, ui16_pas_pwm_cycles_ticks, enm_g_pedaling_direction);
     //printf("%d %d\n", ui8_pas_cadence_rpm, ui16_pedal_torque_x10);
     //printf("%d %d\n", ui8_adc_battery_current_max, ui8_g_adc_battery_current);
+    sprintf(string_buffer, "%d %d %d\n", ui8_pas_cadence_rpm, ui16_pas_pwm_cycles_ticks, enm_g_pedaling_direction);
+    uart_send_string(string_buffer);
+    //uart_send_string("hello\n");
   }
 }
 
